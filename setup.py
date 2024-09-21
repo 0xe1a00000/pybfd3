@@ -223,18 +223,28 @@ class CustomBuildExtension( build_ext ):
             self.with_static_binutils == None)
 
         source_bfd_archs_c = generate_supported_architectures_source(supported_archs, supported_machines)
+        macros = []
         print("[+] Testing for print_insn_i386...")
         try:
             objects = self.compiler.compile(
                 [os.path.join(PACKAGE_DIR, "test_print_insn_i386.c"), ],
                 include_dirs = [self.includes,],
                 )
-            if len(objects) > 0:
-                macros = None
-            else:
+            if len(objects) == 0:
                 macros = [("PYBFD3_BFD_GE_2_29", None)]
         except:
             macros = [("PYBFD3_BFD_GE_2_29", None)]
+
+        print("[+] Testing for init_disassemble_info...")
+        try:
+            objects = self.compiler.compile(
+                [os.path.join(PACKAGE_DIR, "test_init_disassemble_info.c"), ],
+                include_dirs = [self.includes,],
+            )
+            if len(objects) == 0:
+                macros.append(("PYBFD3_LIBBFD_INIT_DISASM_INFO_FOUR_ARGS_SIGNATURE", None))
+        except:
+            macros.append(("PYBFD3_LIBBFD_INIT_DISASM_INFO_FOUR_ARGS_SIGNATURE", None))
 
         print("[+] Generating .C files...")
         gen_file = os.path.join(PACKAGE_DIR, "gen_bfd_archs.c")

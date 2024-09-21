@@ -35,3 +35,7 @@ enum PYBFD3_DISASM_CALLBACK_RESULT {
 };
 
 #endif /* PYBFD3_HEADERS */
+
+#ifndef BFD_VMA_FMT
+#define BFD_VMA_FMT PRIx64
+#endif

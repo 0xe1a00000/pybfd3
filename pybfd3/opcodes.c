@@ -4,6 +4,9 @@
 // Copyright (c) 2013 Groundworks Technologies
 //
 
+// In order to use '#' variant of formats, we must define this on python >= 3.10
+#define PY_SSIZE_T_CLEAN
+
 #include <Python.h>
 
 #include <stdio.h>
@@ -95,6 +98,17 @@ get_disassemble_function(   unsigned long long ull_arch,
     return (disassembler_ftype)NULL;
 }
 
+#ifdef PYBFD3_LIBBFD_INIT_DISASM_INFO_FOUR_ARGS_SIGNATURE
+// bpftrace no operation fprintf for init_disassemble_info
+static int fprintf_styled_nop(void *out __attribute__((unused)),
+                              enum disassembler_style s __attribute__((unused)),
+                              const char *fmt __attribute__((unused)),
+                              ...)
+{
+  return 0;
+}
+#endif
+
 //
 // Name     : initialize_opcodes
 //
@@ -123,8 +137,13 @@ initialize_opcodes()
     memset(pdisasm_ptr, 0, sizeof(disassembler_pointer));
 
     // Zero out structure members
-    init_disassemble_info(&pdisasm_ptr->dinfo, &pdisasm_ptr->sfile, 
-        (fprintf_ftype)__disassemle_printf);
+    #ifdef PYBFD3_LIBBFD_INIT_DISASM_INFO_FOUR_ARGS_SIGNATURE
+        init_disassemble_info(&pdisasm_ptr->dinfo, &pdisasm_ptr->sfile,
+            (fprintf_ftype)__disassemle_printf, fprintf_styled_nop);
+    #else
+        init_disassemble_info(&pdisasm_ptr->dinfo, &pdisasm_ptr->sfile,
+                    (fprintf_ftype)__disassemle_printf);
+    #endif
 
 
     pdisasm_ptr->pfn_disassemble = NULL;
@@ -471,8 +490,11 @@ start_smart_disassemble(disassembler_pointer* pdisasm_ptr, unsigned long offset,
         offset += n; // update the offset for the next disassemble operation.
         disassembled_bytes += n;    // keep track of the number of bytes
                                     // processed.
-
-        py_result = PyEval_CallObject(callback, py_args);
+        #if PY_VERSION_HEX >= 0x03090000
+            py_result = PyObject_Call(callback, py_args, NULL);
+        #else
+            py_result = PyEval_CallObject(callback, py_args);
+        #endif
         Py_XDECREF(py_args);
 
         if (!py_result) {

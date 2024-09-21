@@ -4,6 +4,8 @@
 // Copyright (c) 2013 Groundworks Technologies
 //
 
+// In order to use '#' variant of formats, we must define this on python >= 3.10
+#define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
 #include <stdio.h>
